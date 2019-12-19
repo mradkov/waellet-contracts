@@ -4,7 +4,7 @@ include "List.aes"
 include "Func.aes"
 include "Option.aes"
 
-contract WaelletTipAnyBasic =
+payable contract WaelletTipAnyBasic =
 
   record state = 
     { tips          : map(string * int, tip)
@@ -30,19 +30,20 @@ contract WaelletTipAnyBasic =
                tips_flat[url = 0] @ n = n + 1 })
     Chain.event(TipReceived(Call.caller, Call.value, url))
 
-  stateful entrypoint withdraw (url : string) : unit =
-    // aggregate all tips for the present url which are not claimed yet
-    Chain.spend(Call.caller, 0)
-
   entrypoint tips_for_url(url : string) = tips_by_key(url)
   entrypoint get_state() : state = state
   
   stateful entrypoint claim(url: string) =
-    // aggregate tips
     let amount = aggregate_unpaid_tips(url)
-    let updated_tips = List.map((x) => x{repaid = true}, tips_for_url(url))
+    do_the_stuff(url, size(url) - 1)
     Chain.spend(Call.caller, amount)
     Chain.event(TipWithdrawn(Call.caller, amount, url))
+    
+  stateful function do_the_stuff(url, i) =
+    if(i < 0) ()
+    else
+      put(state{ tips[(url, i)].repaid = true })
+      do_the_stuff(url, i - 1)  
 
   entrypoint unpaid(url : string) =
     aggregate_unpaid_tips(url)
